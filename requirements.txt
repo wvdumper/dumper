@@ -1,0 +1,3 @@
+frida
+protobuf
+pycryptodome
