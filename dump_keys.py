@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 
 import time
-import frida
 import logging
-from Helpers.Scanner import Scan
+from Helpers.Device import Device
 
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(lineno)d - %(levelname)s - %(message)s',
@@ -11,17 +10,21 @@ logging.basicConfig(
     level=logging.DEBUG,
 )
 
-device = frida.get_usb_device()
-scanner = Scan(device.name)
-logging.info(f'Connected to {device.name}')
-logging.info('scanning all processes for the following libraries')
-for process in device.enumerate_processes():
-    logging.debug(process)
-    if 'drm' in process.name:
-        libraries = scanner.find_widevine_process(device, process.name)
-        if libraries:
-            for library in libraries:
-                scanner.hook_to_process(device, process.name, library)
-logging.info('Hooks completed')
-while True:
-    time.sleep(1000)
+
+def main():
+    logger = logging.getLogger("main")
+    device = Device()
+    logger.info('Connected to %s', device.name)
+    logger.info('Scanning all processes')
+
+    for process in device.usb_device.enumerate_processes():
+        if 'drm' in process.name:
+            for library in device.find_widevine_process(process.name):
+                device.hook_to_process(process.name, library)
+    logger.info('Functions Hooked, load the DRM stream test on Bitmovin!')
+
+
+if __name__ == '__main__':
+    main()
+    while True:
+        time.sleep(1000)
