@@ -3,12 +3,9 @@
 Dumper is a Frida script to dump L3 CDMs from any Android device.
 
 ## ** IMPORTANT **
-You MUST update `DYNAMIC_FUNCTION_NAME` and `CDM_VERSION` in `script.js` to the relevant values for your device.
+The function parameters can differ between CDM versions. The default is [4] but you may have to change this for your specific version.
 
 * `CDM_VERSION` can be retrieved using a DRM Info app.
-* `DYNAMIC_FUNCTION_NAME` value is unique to your device and can be found in the file `libwvhidl.so` on your device.
-
-If you've managed to get as far as updating `DYNAMIC_FUNCTION_NAME` but can't find your function name, create an issue and provide me with your `libwvhidl.so` file and I will give you the function name you need.
 
 ## Requirements
 Use pip to install the dependencies:
@@ -23,6 +20,8 @@ Use pip to install the dependencies:
 * Start streaming some DRM-protected content
 
 ## Known Working Versions
+* Android 9
+    * CDM 14.0.0
 * Android 10
     * CDM 15.0.0
 * Android 11
