@@ -1,5 +1,4 @@
-const DYNAMIC_FUNCTION_NAME = 'CHANGE_ME'
-const CDM_VERSION = 'CHANGE_ME'
+const CDM_VERSION = ''
 
 // The TextEncoder/Decoder API isn't supported so it has to be polyfilled.
 // Taken from https://gist.github.com/Yaffle/5458286#file-textencodertextdecoder-js
@@ -48,10 +47,14 @@ function getPrivateKey(address) {
                     const bytes = new Uint8Array(buf);
                     // The first two bytes of the DER encoding are 0x30 and 0x82 (MII).
                     if (bytes[0] === 0x30 && bytes[1] === 0x82) {
-                        const binaryString = a2bs(bytes)
-                        const keyLength = getKeyLength(binaryString);
-                        const key = bytes.slice(0, keyLength);
-                        send('private_key', key);
+                        try {
+                            const binaryString = a2bs(bytes)
+                            const keyLength = getKeyLength(binaryString);
+                            const key = bytes.slice(0, keyLength);
+                            send('private_key', key);
+                        } catch (error) {
+                            console.log(error)
+                        }
                     }
                 }
             }
@@ -73,6 +76,7 @@ function prepareKeyRequest(address) {
     Interceptor.attach(ptr(address), {
         onEnter: function (args) {
             switch (CDM_VERSION) {
+                case '14.0.0':
                 case '15.0.0':
                 case '16.0.0':
                     this.ret = args[4];
@@ -103,19 +107,17 @@ function hookLibFunctions(lib) {
     send('message_info', new TextEncoder().encode(message))
 
     Module.enumerateExportsSync(name).forEach(function (module) {
-        const privacy_mode = 'UsePrivacyMode'
-        const prepare_key_request = 'PrepareKeyRequest'
         try {
             let hookedModule;
-            if (module.name.includes(DYNAMIC_FUNCTION_NAME)) {
-                getPrivateKey(module.address);
-                hookedModule = DYNAMIC_FUNCTION_NAME
-            } else if (module.name.includes(privacy_mode)) {
+            if (module.name.includes('UsePrivacyMode')) {
                 disablePrivacyMode(module.address);
-                hookedModule = privacy_mode
-            } else if (module.name.includes(prepare_key_request)) {
+                hookedModule = module.name
+            } else if (module.name.includes('PrepareKeyRequest')) {
                 prepareKeyRequest(module.address);
-                hookedModule = prepare_key_request
+                hookedModule = module.name
+            } else if (module.name.match(/^[a-z]+$/)) {
+                getPrivateKey(module.address);
+                hookedModule = module.name
             }
 
             if (hookedModule) {

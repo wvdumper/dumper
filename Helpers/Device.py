@@ -22,10 +22,12 @@ class Device:
         self.name = self.usb_device.name
 
     def export_key(self, key, client_id):
-        system_id = client_id.Token._DeviceCertificate.SystemId
         save_dir = os.path.join(
             'key_dumps',
-            f'{self.name}/private_keys/{system_id}/{str(key.n)[:10]}'
+            f'{self.name}',
+            'private_keys',
+            f'{client_id.Token._DeviceCertificate.SystemId}',
+            f'{str(key.n)[:10]}'
         )
 
         if not os.path.exists(save_dir):
@@ -39,25 +41,28 @@ class Device:
         self.logger.info('Key pairs saved at %s', save_dir)
 
     def on_message(self, msg, data):
-        if msg['payload'] == 'private_key':
-            key = RSA.import_key(data)
-            if key.n not in self.saved_keys:
-                encoded_key = base64.b64encode(data).decode('utf-8')
-                self.logger.debug('Retrieved key: %s', encoded_key)
-            self.saved_keys[key.n] = key
-        elif msg['payload'] == 'device_info':
-            self.license_request_message(data)
-        elif msg['payload'] == 'message_info':
-            self.logger.info(data.decode())
+        if 'payload' in msg:
+            if msg['payload'] == 'private_key':
+                key = RSA.import_key(data)
+                if key.n not in self.saved_keys:
+                    self.logger.debug(
+                        'Retrieved key: \n\n%s\n',
+                        key.export_key().decode("utf-8")
+                    )
+                self.saved_keys[key.n] = key
+            elif msg['payload'] == 'device_info':
+                self.license_request_message(data)
+            elif msg['payload'] == 'message_info':
+                self.logger.info(data.decode())
 
     def license_request_message(self, data):
+        self.logger.debug(
+            'Retrieved build info: \n\n%s\n',
+            base64.b64encode(data).decode('utf-8')
+        )
         root = SignedLicenseRequest()
         root.ParseFromString(data)
         public_key = root.Msg.ClientId.Token._DeviceCertificate.PublicKey
-        self.logger.debug(
-            'Retrieved key: %s',
-            base64.b64encode(public_key).decode('utf-8')
-        )
         key = RSA.importKey(public_key)
         cur = self.saved_keys.get(key.n)
         self.export_key(cur, root.Msg.ClientId)
