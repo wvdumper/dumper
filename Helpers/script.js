@@ -1,4 +1,16 @@
-const CDM_VERSION = ''
+const DYNAMIC_FUNCTION_NAME = '${DYNAMIC_FUNCTION_NAME}';
+const CDM_VERSION = '${CDM_VERSION}';
+
+// These strings are function names that have been succesfully dumped.
+const KNOWN_DYNAMIC_FUNCTION_NAMES = [
+    'rnmsglvj',
+    'polorucp',
+    'kqzqahjq',
+    'pldrclfq',
+    'kgaitijd',
+    'dnvffnze',
+    'cwkfcplc'
+];
 
 // The TextEncoder/Decoder API isn't supported so it has to be polyfilled.
 // Taken from https://gist.github.com/Yaffle/5458286#file-textencodertextdecoder-js
@@ -85,6 +97,8 @@ function prepareKeyRequest(address) {
                     this.ret = args[5];
                     break;
                 default:
+                    const message = 'Defaulting to args[4] for PrepareKeyRequest.'
+                    send('message_info', new TextEncoder().encode(message));
                     this.ret = args[4];
                     break;
             }
@@ -102,22 +116,29 @@ function prepareKeyRequest(address) {
 function hookLibFunctions(lib) {
     const name = lib['name'];
     const baseAddr = lib['base'];
-    const message = 'Hooking ' + name + ' at ' + baseAddr;
+    let message = 'Hooking ' + name + ' at ' + baseAddr;
+    let hookedProvidedModule = false;
+    let funcNames = [];
 
-    send('message_info', new TextEncoder().encode(message))
+    send('message_info', new TextEncoder().encode(message));
 
     Module.enumerateExportsSync(name).forEach(function (module) {
         try {
             let hookedModule;
             if (module.name.includes('UsePrivacyMode')) {
                 disablePrivacyMode(module.address);
-                hookedModule = module.name
+                hookedModule = module.name;
             } else if (module.name.includes('PrepareKeyRequest')) {
                 prepareKeyRequest(module.address);
-                hookedModule = module.name
-            } else if (module.name.match(/^[a-z]+$/)) {
+                hookedModule = module.name;
+            } else if (DYNAMIC_FUNCTION_NAME !== '' && module.name.includes(DYNAMIC_FUNCTION_NAME)) {
                 getPrivateKey(module.address);
-                hookedModule = module.name
+                hookedModule = module.name;
+                hookedProvidedModule = true;
+            } else if (DYNAMIC_FUNCTION_NAME === '' && module.name.match(/^[a-z]+$/)) {
+                getPrivateKey(module.address);
+                hookedModule = module.name;
+                funcNames.push(hookedModule);
             }
 
             if (hookedModule) {
@@ -128,6 +149,19 @@ function hookLibFunctions(lib) {
             console.log("Error: " + e + " at F: " + module.name);
         }
     });
+
+    if (DYNAMIC_FUNCTION_NAME !== '' && !hookedProvidedModule) {
+        const message = "Unable to find '" + DYNAMIC_FUNCTION_NAME + "'";
+        send('message_info', new TextEncoder().encode(message));
+    }
+
+    if (DYNAMIC_FUNCTION_NAME === '') {
+        const possibleFuncNames = KNOWN_DYNAMIC_FUNCTION_NAMES.filter(x => funcNames.includes(x));
+        if (possibleFuncNames.length) {
+            message = "Your function name is most likely: " + "'" + possibleFuncNames.join('\', \'') + "'";
+            send('message_info', new TextEncoder().encode(message));
+        }
+    }
 }
 
 function getModuleByName(lib) {

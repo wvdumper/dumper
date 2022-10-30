@@ -7,19 +7,42 @@ The function parameters can differ between CDM versions. The default is [4] but 
 
 * `CDM_VERSION` can be retrieved using a DRM Info app.
 
-## Requirements
+## Requirements:
 Use pip to install the dependencies:
 
 `pip3 install -r requirements.txt`
 
-## Usage
+## Usage:
 
 * Enable USB debugging
 * Start frida-server on the device
 * Execute dump_keys.py
 * Start streaming some DRM-protected content
 
-## Known Working Versions
+The script will hook every function in your 'libwvhidl.so' module by default, effectively brute forcing the private key function name.
+```
+python3 .\dump_keys.py [OPTIONS]
+```
+
+You can pass the function name to hook using the `--function-name` argument.
+```
+python3 .\dump_keys.py --function-name 'polorucp'
+```
+
+The script defaults to `args[4]` if no `--cdm-version` is provided. This will only have an effect if your version is `16.1.0`.
+
+```
+python3 .\dump_keys.py --cdm-version '16.1.0'
+```
+
+## Options:
+```
+    -h, --help                      Print this help text and exit.
+    --cdm-version                   The CDM version of the device e.g. '16.1.0'.
+    --function-name                 The name of the function to hook to retrieve the private key.
+```
+
+## Known Working Versions:
 * Android 9
     * CDM 14.0.0
 * Android 10

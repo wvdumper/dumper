@@ -7,19 +7,17 @@ from Helpers.wv_proto2_pb2 import SignedLicenseRequest
 
 
 class Device:
-    def __init__(self):
+    def __init__(self, dynamic_function_name, cdm_version):
         self.logger = logging.getLogger(__name__)
         self.saved_keys = {}
-        self.frida_script = open(
-            './Helpers/script.js',
-            'r',
-            encoding="utf_8"
-        ).read()
-        self.widevine_libraries = [
-            'libwvhidl.so'
-        ]
+        self.widevine_libraries = ['libwvhidl.so']
         self.usb_device = frida.get_usb_device()
         self.name = self.usb_device.name
+
+        with open('./Helpers/script.js', 'r', encoding="utf_8") as script:
+            self.frida_script = script.read()
+        self.frida_script = self.frida_script.replace(r'${DYNAMIC_FUNCTION_NAME}', dynamic_function_name)
+        self.frida_script = self.frida_script.replace(r'${CDM_VERSION}', cdm_version)
 
     def export_key(self, key, client_id):
         save_dir = os.path.join(
@@ -65,7 +63,9 @@ class Device:
         public_key = root.Msg.ClientId.Token._DeviceCertificate.PublicKey
         key = RSA.importKey(public_key)
         cur = self.saved_keys.get(key.n)
-        self.export_key(cur, root.Msg.ClientId)
+
+        if cur is not None:
+            self.export_key(cur, root.Msg.ClientId)
 
     def find_widevine_process(self, process_name):
         process = self.usb_device.attach(process_name)
