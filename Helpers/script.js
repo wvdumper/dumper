@@ -9,7 +9,8 @@ const KNOWN_DYNAMIC_FUNCTION_NAMES = [
     'pldrclfq',
     'kgaitijd',
     'dnvffnze',
-    'cwkfcplc'
+    'cwkfcplc',
+    'crhqcdet'
 ];
 
 // The TextEncoder/Decoder API isn't supported so it has to be polyfilled.
