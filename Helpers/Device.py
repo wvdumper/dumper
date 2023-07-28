@@ -7,10 +7,10 @@ from Helpers.wv_proto2_pb2 import SignedLicenseRequest
 
 
 class Device:
-    def __init__(self, dynamic_function_name, cdm_version):
+    def __init__(self, dynamic_function_name, cdm_version, module_names):
         self.logger = logging.getLogger(__name__)
         self.saved_keys = {}
-        self.widevine_libraries = ['libwvhidl.so']
+        self.widevine_libraries = module_names
         self.usb_device = frida.get_usb_device()
         self.name = self.usb_device.name
 
@@ -74,7 +74,13 @@ class Device:
         loaded_modules = []
         try:
             for lib in self.widevine_libraries:
-                loaded_modules.append(script.exports.getmodulebyname(lib))
+                try:
+                    loaded_modules.append(script.exports.getmodulebyname(lib))
+                except frida.core.RPCException as e:
+                    # Hide the cases where the module cannot be found
+                    continue
+                except Exception as e:
+                    raise(e)
         finally:
             process.detach()
             return loaded_modules

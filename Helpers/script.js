@@ -95,6 +95,7 @@ function prepareKeyRequest(address) {
                     this.ret = args[4];
                     break;
                 case '16.1.0':
+                case '17.0.0':
                     this.ret = args[5];
                     break;
                 default:
